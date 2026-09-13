@@ -9,10 +9,7 @@
     "target": "es2017",
     "sourceMap": true,
     "outDir": "./dist",
-    "baseUrl": "./",
-    "incremental": true,
-    "paths": {
-      "@nestjs/common": ["@nestjs/common/"]
-    },
+    "rootDir": "./src",
+    "incremental": true
   }
 }
