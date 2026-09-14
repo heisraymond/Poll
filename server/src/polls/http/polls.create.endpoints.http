@@ -1,0 +1,8 @@
+POST http://localhost:3000/polls
+Content-Type: application/json
+
+{
+    "topic": "What should we have for lunch?",
+    "votesPerVoter": 3,
+    "name": "John Doe"
+}

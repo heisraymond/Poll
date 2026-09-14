@@ -1,0 +1,8 @@
+# Replace pollID with a valid 6-character ID from a poll created via polls.create.endpoints.http
+POST http://localhost:3000/polls/join
+Content-Type: application/json
+
+{
+    "pollID": "ABC123",
+    "name": "Jane Doe"
+}

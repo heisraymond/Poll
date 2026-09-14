@@ -1,0 +1,8 @@
+# Replace pollID with a valid 6-character ID and name with a name that already joined that poll
+POST http://localhost:3000/polls/rejoin
+Content-Type: application/json
+
+{
+    "pollID": "ABC123",
+    "name": "Jane Doe"
+}
