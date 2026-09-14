@@ -8,9 +8,10 @@
     "server"
   ],
   "scripts": {
-    "docker:compose": "docker-compose up -d",
+    "docker:compose": "docker-compose up -d redis",
     "client:dev": "npm run dev --workspace=client",
     "server:dev": "wait-on tcp:6379 && npm run start:dev --workspace=server",
+    "server:dev:docker": "wait-on tcp:redis:6379 && npm run start:dev --workspace=server",
     "start": "concurrently 'npm:docker:compose' 'npm:server:dev' 'npm:client:dev'",
     "storybook": "npm run storybook --workspace=client",
     "stop": "docker-compose down",
@@ -28,6 +29,7 @@
     "@types/webpack": "^5.28.0",
     "concurrently": "^7.0.0",
     "prettier": "^2.5.1",
+    "typescript": "4.9.5",
     "wait-on": "^6.0.1"
   }
 }

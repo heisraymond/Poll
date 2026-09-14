@@ -6,54 +6,69 @@ A React &amp; NestJS based project dealing with online, ranked-choice polling. V
 
 - **Client**: React, TypeScript, Vite, Tailwind CSS, Storybook
 - **Server**: NestJS, TypeScript, Socket.IO, Redis (via `redislabs/rejson`)
-- **Infra (local)**: Docker Compose (Redis)
+- **Infra**: Docker Compose (Redis, server, client)
 
 ## Prerequisites
 
-- [Node.js](https://nodejs.org/) `v17.6.0` (see `.nvmrc` — run `nvm use` if you have nvm installed)
-- [Docker](https://www.docker.com/) and Docker Compose (used to run Redis locally)
-- npm (this repo uses npm workspaces for `client` and `server`)
+- [Docker](https://www.docker.com/) and Docker Compose — this is the primary/recommended way to run the project, so everyone develops against the same environment regardless of what's installed locally
+- [Node.js](https://nodejs.org/) `v17.6.0` (see `.nvmrc`) — only needed if you also want to run things natively, or want local `node_modules` for editor/IDE support (autocomplete, type-checking)
 
 ## Getting started
 
 ```bash
 git clone <repo-url>
 cd Poll
-./dev.sh setup   # installs dependencies and creates .env files
-./dev.sh start   # starts Redis, the server, and the client
+./dev.sh setup   # creates .env files (and installs local deps for your editor)
+./dev.sh start   # builds images and starts Redis, the server, and the client in Docker
 ```
 
-The client runs at `http://localhost:8080` and the server at `http://localhost:3000` by default.
+The client runs at `http://localhost:8080` and the server at `http://localhost:3000`. Source files for both `client/` and `server/` are bind-mounted into their containers, so edits on your machine trigger the same hot-reload (`vite`/`nest --watch`) you'd get running natively. `Ctrl+C` stops the stack.
 
 ## The `dev.sh` script
 
 `dev.sh` wraps the common commands you'll need during development. Run `./dev.sh help` to see this list at any time.
 
-| Command             | Description                                                        |
-| -------------------- | -------------------------------------------------------------------- |
-| `./dev.sh setup`     | Installs dependencies for all workspaces and creates `server/.env` / `client/.env` from their `.env.example` files (if they don't already exist) |
-| `./dev.sh start`     | Starts Redis via Docker Compose, then runs the server and client in watch mode |
-| `./dev.sh stop`      | Stops the Docker Compose services (Redis)                          |
-| `./dev.sh test`      | Runs the server and client test suites                             |
-| `./dev.sh lint`      | Lints the server and client codebases                              |
-| `./dev.sh build`     | Builds the server and client for production                        |
-| `./dev.sh storybook` | Starts Storybook for the client component library                  |
+### Docker commands (recommended)
 
-If you'd rather run things manually, the underlying npm scripts (defined in the root `package.json`) are:
+| Command               | Description                                                              |
+| ---------------------- | --------------------------------------------------------------------------- |
+| `./dev.sh setup`       | Creates `server/.env` / `client/.env` from their `.env.example` files (if missing) and runs `npm install` locally for editor support |
+| `./dev.sh start`       | Builds images (if needed) and starts Redis, the server, and the client in Docker |
+| `./dev.sh stop`        | Stops and removes the Docker containers                                 |
+| `./dev.sh test`        | Runs the server and client test suites inside Docker                    |
+| `./dev.sh lint`        | Lints the server and client codebases inside Docker                     |
+| `./dev.sh build`       | Builds the server and client for production inside Docker               |
+| `./dev.sh storybook`   | Starts Storybook (`http://localhost:6006`) for the client component library inside Docker |
+
+### Native commands
+
+Useful if you want faster local feedback loops without Docker for the server/client (Redis still runs in Docker either way).
+
+| Command                | Description                                                      |
+| ------------------------ | -------------------------------------------------------------------- |
+| `./dev.sh start:native` | Starts Redis in Docker, then runs the server and client with your local Node/npm install |
+| `./dev.sh stop:native`  | Stops the Redis container                                        |
+
+If you'd rather run things manually, the underlying commands are:
 
 ```bash
-npm install                 # install all workspace dependencies
-npm run docker:compose      # start Redis in the background
-npm run server:dev          # start the NestJS server in watch mode (waits for Redis)
-npm run client:dev          # start the Vite dev server for the client
-npm run start                 # runs docker:compose, server:dev, and client:dev together
-npm run stop                 # stop the Docker Compose services
-npm run storybook           # start Storybook
+# Docker
+docker compose up --build        # start Redis, server, and client
+docker compose down              # stop everything
+docker compose run --rm server npm run test   # run a one-off command in a service
+
+# Native (Redis still via Docker)
+npm install
+npm run docker:compose           # start Redis only, in the background
+npm run server:dev               # start the NestJS server in watch mode (waits for Redis)
+npm run client:dev               # start the Vite dev server for the client
+npm run start                    # runs the three above together
+npm run stop                     # stop Redis
 ```
 
 ## Environment variables
 
-Copy the example files and adjust as needed (`./dev.sh setup` does this automatically):
+`./dev.sh setup` creates these for you; to do it manually:
 
 ```bash
 cp server/.env.example server/.env
@@ -71,6 +86,8 @@ cp client/.env.example client/.env
 | `POLL_DURATION`  | Poll TTL in Redis, in seconds             | `7200`      |
 | `JWT_SECRET`     | Secret used to sign poll access tokens    | -           |
 
+> When running via `docker compose`, `REDIS_HOST` is overridden to `redis` (the service name) so the server container can reach the Redis container. This is set in `docker-compose.yml`, not in `server/.env`.
+
 **`client/.env`**
 
 | Variable                | Description                        | Example     |
@@ -87,16 +104,25 @@ cp client/.env.example client/.env
 
 ```
 Poll/
-├── client/     # React app (Vite)
-├── server/     # NestJS app
-├── dev.sh      # Development helper script
-└── docker-compose.yml   # Local Redis
+├── client/               # React app (Vite)
+│   └── Dockerfile
+├── server/               # NestJS app
+│   └── Dockerfile
+├── dev.sh                # Development helper script
+└── docker-compose.yml    # Redis, server, and client
 ```
 
 ## Common workflows
 
 - **Run everything for local development**: `./dev.sh start`
-- **Only work on the server**: `docker-compose up -d && npm run server:dev`
-- **Only work on the client**: `npm run client:dev` (server must be running separately if you need live data)
+- **Only work on the server**: `docker compose up redis server` (or `./dev.sh start:native` for local Node)
+- **Only work on the client**: `docker compose up redis server client`, or `npm run client:dev` if the server is already running elsewhere
 - **Run tests before committing**: `./dev.sh test`
 - **Check formatting/lint issues**: `./dev.sh lint`
+- **Rebuild images after changing a `package.json`**: `docker compose build`
+
+## Troubleshooting
+
+- **Hot reload isn't picking up changes in Docker (mainly on macOS/Windows)**: bind-mount file watching can occasionally miss events. Restarting the affected container (`docker compose restart server` or `client`) resolves it; if it's a recurring issue for you, ask about enabling polling-based watchers.
+- **Ports already in use**: something on your machine (or a stale container) is already bound to `3000`, `8080`, or `6379`. Run `./dev.sh stop` first, or find and stop the conflicting process.
+- **Changed a dependency but the container doesn't see it**: run `docker compose build` (or `./dev.sh start` again, which rebuilds) so `npm ci` re-runs inside the image.

@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   redis:
     image: 'redislabs/rejson:2.0.0'
@@ -7,5 +5,40 @@ services:
       - '6379:6379'
     volumes:
       - 'redisdata:/data'
+
+  server:
+    build:
+      context: .
+      dockerfile: server/Dockerfile
+    env_file:
+      - server/.env
+    environment:
+      # Overrides server/.env so the server reaches Redis by its
+      # service name on the docker network instead of localhost.
+      REDIS_HOST: redis
+    ports:
+      - '3000:3000'
+    volumes:
+      - ./server:/app/server
+      - server_node_modules:/app/server/node_modules
+    depends_on:
+      - redis
+
+  client:
+    build:
+      context: .
+      dockerfile: client/Dockerfile
+    env_file:
+      - client/.env
+    ports:
+      - '8080:8080'
+    volumes:
+      - ./client:/app/client
+      - client_node_modules:/app/client/node_modules
+    depends_on:
+      - server
+
 volumes:
   redisdata:
+  server_node_modules:
+  client_node_modules:
