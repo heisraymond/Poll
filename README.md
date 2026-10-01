@@ -82,11 +82,11 @@ cp client/.env.example client/.env
 | `PORT`           | Port the NestJS server listens on         | `3000`      |
 | `CLIENT_PORT`    | Port the client runs on (used for CORS)   | `8080`      |
 | `REDIS_HOST`     | Redis host                                | `localhost` |
-| `REDIS_PORT`     | Redis port                                | `6379`      |
+| `REDIS_PORT`     | Redis port                                | `6380`      |
 | `POLL_DURATION`  | Poll TTL in Redis, in seconds             | `7200`      |
 | `JWT_SECRET`     | Secret used to sign poll access tokens    | -           |
 
-> When running via `docker compose`, `REDIS_HOST` is overridden to `redis` (the service name) so the server container can reach the Redis container. This is set in `docker-compose.yml`, not in `server/.env`.
+> The Redis container is published to the host on `6380` instead of the default `6379` (set in `docker-compose.yml`) to avoid clashing with any other project's Redis running on your machine. `server/.env` points at `localhost:6380`, which is what a natively-run server (`./dev.sh start:native`) and host tools (e.g. `redis-cli -p 6380`) use. When running via `docker compose`, `REDIS_HOST` and `REDIS_PORT` are overridden to `redis` and `6379` (the service name and container-to-container port) in `docker-compose.yml`, so the server container reaches Redis directly on the docker network.
 
 **`client/.env`**
 
@@ -124,5 +124,6 @@ Poll/
 ## Troubleshooting
 
 - **Hot reload isn't picking up changes in Docker (mainly on macOS/Windows)**: bind-mount file watching can occasionally miss events. Restarting the affected container (`docker compose restart server` or `client`) resolves it; if it's a recurring issue for you, ask about enabling polling-based watchers.
-- **Ports already in use**: something on your machine (or a stale container) is already bound to `3000`, `8080`, or `6379`. Run `./dev.sh stop` first, or find and stop the conflicting process.
+- **Ports already in use**: something on your machine (or a stale container) is already bound to `3000`, `8080`, or `6380`. Run `./dev.sh stop` first, or find and stop the conflicting process (`docker ps` shows what's using a port).
+- **Server hangs and requests get reset (`ECONNRESET`)**: this usually means the `server` container never actually started — check `docker compose logs server`. A common cause is Redis not being reachable (e.g. a stale/orphaned Redis container left over from an interrupted `docker compose up`). Fix: `docker compose down && docker compose up -d` to force a clean recreate of all three containers.
 - **Changed a dependency but the container doesn't see it**: run `docker compose build` (or `./dev.sh start` again, which rebuilds) so `npm ci` re-runs inside the image.

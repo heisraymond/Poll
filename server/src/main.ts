@@ -1,6 +1,6 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
-import { Logger } from '@nestjs/common';
+import { Logger, ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
 async function bootstrap() {
@@ -11,6 +11,14 @@ async function bootstrap() {
   const port = parseInt(configService.get('PORT', '3000'));
   const clientPort = parseInt(configService.get('CLIENT_PORT', '8080'));
 
+  app.useGlobalPipes(
+    new ValidationPipe({
+      whitelist: true,
+      forbidNonWhitelisted: true,
+      transform: true,
+    }),
+  );
+
   app.enableCors({
     origin: [
       `http://localhost:${clientPort}`,
@@ -18,6 +26,9 @@ async function bootstrap() {
     ],
     credentials: true,
   });
+
+  // Runs onApplicationShutdown hooks (e.g. closing Redis) on SIGTERM/SIGINT.
+  app.enableShutdownHooks();
 
   await app.listen(port);
 

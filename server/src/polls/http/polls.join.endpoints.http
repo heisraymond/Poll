@@ -3,6 +3,6 @@ POST http://localhost:3000/polls/join
 Content-Type: application/json
 
 {
-    "pollID": "ABC123",
+    "pollID": "GwpVlq",
     "name": "Jane Doe"
 }

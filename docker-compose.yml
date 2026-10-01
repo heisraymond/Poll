@@ -2,7 +2,11 @@ services:
   redis:
     image: 'redislabs/rejson:2.0.0'
     ports:
-      - '6379:6379'
+      # Published on a non-default host port to avoid clashing with
+      # other projects' Redis containers on 6379. Server/client reach
+      # this container on the internal docker network at redis:6379
+      # regardless — only host-side tools (e.g. redis-cli) need 6380.
+      - '6380:6379'
     volumes:
       - 'redisdata:/data'
 
@@ -14,8 +18,10 @@ services:
       - server/.env
     environment:
       # Overrides server/.env so the server reaches Redis by its
-      # service name on the docker network instead of localhost.
+      # service name and internal port on the docker network,
+      # instead of the host-published localhost:6380.
       REDIS_HOST: redis
+      REDIS_PORT: 6379
     ports:
       - '3000:3000'
     volumes:
