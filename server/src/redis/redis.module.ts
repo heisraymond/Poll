@@ -1,6 +1,7 @@
 import {
   DynamicModule,
   FactoryProvider,
+  Inject,
   Module,
   ModuleMetadata,
   OnApplicationShutdown,
@@ -11,10 +12,22 @@ import IORedis from 'ioredis';
 /**
  * Injection token for the shared Redis client.
  *
- * @example
- * constructor(@Inject(IORedisKey) private readonly redis: IORedis.Redis) {}
+ * Prefer {@link InjectRedis} for constructor injection.
  */
 export const IORedisKey = 'IORedis';
+
+/**
+ * Injects the shared Redis client.
+ *
+ * Wraps `@Inject(IORedisKey)` with the standard `ParameterDecorator` type:
+ * NestJS 8's `@Inject` typing is rejected on constructor parameters by
+ * newer TypeScript versions (TS1239), even though it works at runtime.
+ *
+ * @example
+ * constructor(@InjectRedis() private readonly redis: IORedis.Redis) {}
+ */
+export const InjectRedis = (): ParameterDecorator =>
+  Inject(IORedisKey) as ParameterDecorator;
 
 /**
  *
